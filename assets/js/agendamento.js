@@ -82,12 +82,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataFormatada = `${dia}/${mes}/${ano}`;
 
     const servicosTexto = servicos.join(', ');
+
     const detalhes = `Olá ${nome}, seu agendamento para ${servicosTexto} no dia ${dataFormatada} às ${hora} foi confirmado!`;
     document.getElementById('confirmacaoTexto').textContent = detalhes;
 
     try {
-      // Alterando a URL para a produção
-      const response = await fetch('https://podiatryproject.onrender.com/criar-evento', {
+      // Verifica se o usuário está autenticado
+      const response = await fetch('/auth/status', { method: 'GET' }); // Mudamos para /auth/status
+      if (!response.ok) {
+        // Se não estiver autenticado, redireciona para login
+        window.location.href = '/auth/google';  // Redireciona para o login do Google
+        return;
+      }
+
+      // Agora cria o evento
+      const responseCriarEvento = await fetch('http://localhost:3000/criar-evento', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -95,12 +104,13 @@ document.addEventListener('DOMContentLoaded', () => {
           telefone,
           servicos: servicosTexto,
           dataInicio: dataISO.toISOString(),
-          dataFim: new Date(dataISO.getTime() + 60 * 60000).toISOString()
+          dataFim: new Date(dataISO.getTime() + 60 * 60000).toISOString(),
+          emailCliente: 'cliente@exemplo.com',  // E-mail do cliente
         })
       });
 
-      const result = await response.json();
-      if (response.ok) {
+      const result = await responseCriarEvento.json();
+      if (responseCriarEvento.ok) {
         console.log('Evento criado com sucesso:', result);
         new bootstrap.Modal(document.getElementById('confirmacaoModal')).show();
       } else {
@@ -120,4 +130,4 @@ document.addEventListener('DOMContentLoaded', () => {
       `*Nome:* ${nome}\n*Telefone:* ${telefone}\n*Data:* ${data} às ${hora}\n*Serviço:* ${servico}\n\nPor favor, confirme.`;
     return `https://wa.me/5511967036990?text=${encodeURIComponent(texto)}`;
   }
-}); // Este é o único fechamento necessário
+});
